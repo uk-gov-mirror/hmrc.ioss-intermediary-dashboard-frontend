@@ -48,7 +48,13 @@ class ClientListController @Inject()(
 
       val clientDetailsList: Seq[EtmpClientDetails] = request.registrationWrapper.etmpDisplayRegistration.clientDetails
 
-      val previousRegistrations: Future[Seq[PreviousRegistration]] = accountService.getPreviousRegistrations()
+      val numberOfIntermediaryAccounts = request.enrolments.enrolments.count(_.key == frontendAppConfig.intermediaryEnrolment)
+
+      val previousRegistrations: Future[Seq[PreviousRegistration]] = if(numberOfIntermediaryAccounts > 1) {
+        accountService.getPreviousRegistrations()
+      } else {
+        Future.successful(Seq.empty)
+      }
 
       val changeRegistrationRedirectUrl: String = frontendAppConfig.changeYourNetpRegistrationUrl
       val excludeClientRedirectUrl: String = frontendAppConfig.leaveNetpServiceUrl

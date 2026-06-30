@@ -40,16 +40,7 @@ class ClientListControllerSpec extends SpecBase with BeforeAndAfterEach {
 
     "must return OK and the correct view for a GET" in {
 
-      val mockAccountService = mock[AccountService]
-      val previousRegistrations = Seq(PreviousRegistration(intermediaryNumber, LocalDate.now(), LocalDate.now().plusMonths(6)))
-      when(mockAccountService.getPreviousRegistrations()(any()))
-        .thenReturn(Future.successful(previousRegistrations))
-
-
       val application = applicationBuilder(userAnswers = Some(emptyUserAnswers))
-        .overrides(
-          bind[AccountService].toInstance(mockAccountService)
-        )
         .build()
 
       running(application) {
@@ -75,7 +66,7 @@ class ClientListControllerSpec extends SpecBase with BeforeAndAfterEach {
         contentAsString(result) `mustBe` view(
           waypoints,
           clientListViewModel,
-          numberOfPreviousRegistrations = previousRegistrations.size
+          numberOfPreviousRegistrations = 0
         )(request).toString
       }
     }
