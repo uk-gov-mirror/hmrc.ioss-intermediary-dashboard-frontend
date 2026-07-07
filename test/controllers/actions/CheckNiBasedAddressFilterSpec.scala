@@ -18,9 +18,9 @@ package controllers.actions
 
 import base.SpecBase
 import config.FrontendAppConfig
+import models.DesAddress
 import models.etmp.EtmpExclusionReason.TransferringMSID
 import models.etmp.{EtmpExclusion, EtmpOtherAddress}
-import models.DesAddress
 import models.requests.RegistrationRequest
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.mvc.Result
@@ -62,13 +62,23 @@ class CheckNiBasedAddressFilterSpec extends SpecBase with MockitoSugar {
     )
   )
 
+  private val niOtherAddress: EtmpOtherAddress = EtmpOtherAddress(
+    issuedBy = "GB",
+    tradingName = Some("Company name"),
+    addressLine1 = "Other Address Line 1",
+    addressLine2 = Some("Other Address Line 2"),
+    townOrCity = "Other Town or City",
+    regionOrState = Some("Other Region or State"),
+    postcode = Some("BT11AH")
+  )
+
   ".filter" - {
 
     "must return None" - {
 
       "when an intermediary is excluded" in {
 
-        val excludedIntermediary = registrationWrapper.copy(
+        val excludedRegistration = registrationWrapper.copy(
           etmpDisplayRegistration = arbitraryEtmpDisplayRegistration.arbitrary.sample.value.copy(
             exclusions = Seq(
               EtmpExclusion(
@@ -91,7 +101,7 @@ class CheckNiBasedAddressFilterSpec extends SpecBase with MockitoSugar {
             enrolments = enrolments,
             vrn = vrn,
             intermediaryNumber = intermediaryNumber,
-            registrationWrapper = excludedIntermediary
+            registrationWrapper = excludedRegistration
           )
 
           val frontendAppConfig = application.injector.instanceOf[FrontendAppConfig]
@@ -136,20 +146,10 @@ class CheckNiBasedAddressFilterSpec extends SpecBase with MockitoSugar {
 
       "when both VAT address and otherAddress is NI based" in {
 
-        val niOtherAddress = registrationWrapper.copy(
+        val registration = registrationWrapper.copy(
           vatInfo = niVatInfo,
           etmpDisplayRegistration = arbitraryEtmpDisplayRegistration.arbitrary.sample.value.copy(
-            otherAddress = Some(
-              EtmpOtherAddress(
-                issuedBy = "GB",
-                tradingName = Some("Company name"),
-                addressLine1 = "Other Address Line 1",
-                addressLine2 = Some("Other Address Line 2"),
-                townOrCity = "Other Town or City",
-                regionOrState = Some("Other Region or State"),
-                postcode = "BT11AH"
-              )
-            )
+            otherAddress = Some(niOtherAddress)
           )
         )
 
@@ -163,7 +163,7 @@ class CheckNiBasedAddressFilterSpec extends SpecBase with MockitoSugar {
             enrolments = enrolments,
             vrn = vrn,
             intermediaryNumber = intermediaryNumber,
-            registrationWrapper = niOtherAddress
+            registrationWrapper = registration
           )
 
           val frontendAppConfig = application.injector.instanceOf[FrontendAppConfig]
@@ -177,20 +177,10 @@ class CheckNiBasedAddressFilterSpec extends SpecBase with MockitoSugar {
 
       "when VAT address is non-ni, but otherAddress is NI based" in {
 
-        val niOtherAddress = registrationWrapper.copy(
+        val registration = registrationWrapper.copy(
           vatInfo = nonNiVatInfo,
           etmpDisplayRegistration = arbitraryEtmpDisplayRegistration.arbitrary.sample.value.copy(
-            otherAddress = Some(
-              EtmpOtherAddress(
-                issuedBy = "GB",
-                tradingName = Some("Company name"),
-                addressLine1 = "Other Address Line 1",
-                addressLine2 = Some("Other Address Line 2"),
-                townOrCity = "Other Town or City",
-                regionOrState = Some("Other Region or State"),
-                postcode = "BT11AH"
-              )
-            )
+            otherAddress = Some(niOtherAddress)
           )
         )
 
@@ -204,7 +194,7 @@ class CheckNiBasedAddressFilterSpec extends SpecBase with MockitoSugar {
             enrolments = enrolments,
             vrn = vrn,
             intermediaryNumber = intermediaryNumber,
-            registrationWrapper = niOtherAddress
+            registrationWrapper = registration
           )
 
           val frontendAppConfig = application.injector.instanceOf[FrontendAppConfig]
@@ -218,7 +208,7 @@ class CheckNiBasedAddressFilterSpec extends SpecBase with MockitoSugar {
 
       "when intermediary is excluded, VAT address is NI and otherAddress field is empty" in {
 
-        val emptyOtherAddress = registrationWrapper.copy(
+        val registration = registrationWrapper.copy(
           vatInfo = niVatInfo,
           etmpDisplayRegistration = arbitraryEtmpDisplayRegistration.arbitrary.sample.value.copy(
             exclusions = Seq(
@@ -243,7 +233,7 @@ class CheckNiBasedAddressFilterSpec extends SpecBase with MockitoSugar {
             enrolments = enrolments,
             vrn = vrn,
             intermediaryNumber = intermediaryNumber,
-            registrationWrapper = emptyOtherAddress
+            registrationWrapper = registration
           )
 
           val frontendAppConfig = application.injector.instanceOf[FrontendAppConfig]
@@ -257,7 +247,7 @@ class CheckNiBasedAddressFilterSpec extends SpecBase with MockitoSugar {
 
       "when intermediary is excluded, and both VAT address and otherAddress is NI based" in {
 
-        val emptyOtherAddress = registrationWrapper.copy(
+        val registration = registrationWrapper.copy(
           vatInfo = niVatInfo,
           etmpDisplayRegistration = arbitraryEtmpDisplayRegistration.arbitrary.sample.value.copy(
             exclusions = Seq(
@@ -268,17 +258,7 @@ class CheckNiBasedAddressFilterSpec extends SpecBase with MockitoSugar {
                 quarantine = false
               )
             ),
-            otherAddress = Some(
-              EtmpOtherAddress(
-                issuedBy = "GB",
-                tradingName = Some("Company name"),
-                addressLine1 = "Other Address Line 1",
-                addressLine2 = Some("Other Address Line 2"),
-                townOrCity = "Other Town or City",
-                regionOrState = Some("Other Region or State"),
-                postcode = "BT11AH"
-              )
-            )
+            otherAddress = Some(niOtherAddress)
           )
         )
 
@@ -292,7 +272,7 @@ class CheckNiBasedAddressFilterSpec extends SpecBase with MockitoSugar {
             enrolments = enrolments,
             vrn = vrn,
             intermediaryNumber = intermediaryNumber,
-            registrationWrapper = emptyOtherAddress
+            registrationWrapper = registration
           )
 
           val frontendAppConfig = application.injector.instanceOf[FrontendAppConfig]
@@ -309,7 +289,7 @@ class CheckNiBasedAddressFilterSpec extends SpecBase with MockitoSugar {
 
       "when VAT address is non-NI and the otherAddress field is empty" in {
 
-        val emptyOtherAddressWithNonNiVat = registrationWrapper.copy(
+        val registration = registrationWrapper.copy(
           vatInfo = nonNiVatInfo,
           etmpDisplayRegistration = arbitraryEtmpDisplayRegistration.arbitrary.sample.value.copy(
             exclusions = Seq.empty,
@@ -327,7 +307,7 @@ class CheckNiBasedAddressFilterSpec extends SpecBase with MockitoSugar {
             enrolments = enrolments,
             vrn = vrn,
             intermediaryNumber = intermediaryNumber,
-            registrationWrapper = emptyOtherAddressWithNonNiVat
+            registrationWrapper = registration
           )
 
           val frontendAppConfig = application.injector.instanceOf[FrontendAppConfig]
@@ -341,7 +321,7 @@ class CheckNiBasedAddressFilterSpec extends SpecBase with MockitoSugar {
 
       "when both VAT address and otherAddress is non-NI" in {
 
-        val emptyOtherAddressWithNonNiVat = registrationWrapper.copy(
+        val registration = registrationWrapper.copy(
           vatInfo = nonNiVatInfo,
           etmpDisplayRegistration = arbitraryEtmpDisplayRegistration.arbitrary.sample.value.copy(
             exclusions = Seq.empty,
@@ -353,7 +333,7 @@ class CheckNiBasedAddressFilterSpec extends SpecBase with MockitoSugar {
                 addressLine2 = Some("Other Address Line 2"),
                 townOrCity = "Other Town or City",
                 regionOrState = Some("Other Region or State"),
-                postcode = "AA11AH"
+                postcode = Some("AA11AH")
               )
             )
           )
@@ -369,7 +349,7 @@ class CheckNiBasedAddressFilterSpec extends SpecBase with MockitoSugar {
             enrolments = enrolments,
             vrn = vrn,
             intermediaryNumber = intermediaryNumber,
-            registrationWrapper = emptyOtherAddressWithNonNiVat
+            registrationWrapper = registration
           )
 
           val frontendAppConfig = application.injector.instanceOf[FrontendAppConfig]
@@ -383,7 +363,7 @@ class CheckNiBasedAddressFilterSpec extends SpecBase with MockitoSugar {
 
       "when intermediary is not excluded" in {
 
-        val notExcludedIntermediary = registrationWrapper.copy(
+        val registration = registrationWrapper.copy(
           etmpDisplayRegistration = arbitraryEtmpDisplayRegistration.arbitrary.sample.value.copy(
             exclusions = Seq.empty
           )
@@ -399,7 +379,7 @@ class CheckNiBasedAddressFilterSpec extends SpecBase with MockitoSugar {
             enrolments = enrolments,
             vrn = vrn,
             intermediaryNumber = intermediaryNumber,
-            registrationWrapper = notExcludedIntermediary
+            registrationWrapper = registration
           )
 
           val frontendAppConfig = application.injector.instanceOf[FrontendAppConfig]

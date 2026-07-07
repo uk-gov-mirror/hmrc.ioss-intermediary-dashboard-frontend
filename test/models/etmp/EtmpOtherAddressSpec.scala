@@ -58,8 +58,7 @@ class EtmpOtherAddressSpec extends SpecBase {
         val json = Json.obj(
           "issuedBy" -> etmpOtherAddress.issuedBy,
           "addressLine1" -> etmpOtherAddress.addressLine1,
-          "townOrCity" -> etmpOtherAddress.townOrCity,
-          "postcode" -> etmpOtherAddress.postcode
+          "townOrCity" -> etmpOtherAddress.townOrCity
         )
 
         val expectedResult: EtmpOtherAddress = EtmpOtherAddress(
@@ -69,7 +68,7 @@ class EtmpOtherAddressSpec extends SpecBase {
           addressLine2 = None,
           townOrCity = etmpOtherAddress.townOrCity,
           regionOrState = None,
-          postcode = etmpOtherAddress.postcode
+          postcode = None
         )
 
         Json.toJson(expectedResult) `mustBe` json
