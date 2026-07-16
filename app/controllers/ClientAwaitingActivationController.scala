@@ -25,6 +25,7 @@ import javax.inject.Inject
 import pages.Waypoints
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, MessagesControllerComponents}
+import services.PendingRegistrationService
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendBaseController
 import views.html.ClientAwaitingActivationView
 import utils.FutureSyntax.FutureOps
@@ -37,6 +38,7 @@ class ClientAwaitingActivationController @Inject()(
                                        cc: AuthenticatedControllerComponents,
                                        val controllerComponents: MessagesControllerComponents,
                                        registrationConnector: RegistrationConnector,
+                                       pendingRegistrationService: PendingRegistrationService,
                                        frontendAppConfig: FrontendAppConfig,
                                        view: ClientAwaitingActivationView
                                      )(implicit ec: ExecutionContext) extends FrontendBaseController with I18nSupport with Logging with GetClientCompanyName  {
@@ -45,7 +47,7 @@ class ClientAwaitingActivationController @Inject()(
     implicit request =>
 
       registrationConnector.getNumberOfPendingRegistrations(request.intermediaryNumber).map(_.toInt).flatMap { numberOfAwaitingClients =>
-        registrationConnector.getPendingRegistrations(request.intermediaryNumber).flatMap {
+        pendingRegistrationService.getPendingRegistration(request.intermediaryNumber, request.vrn).flatMap {
           case Right(savedPendingRegistrations) =>
 
             val companyNames = savedPendingRegistrations.map{ pendingRegistration =>

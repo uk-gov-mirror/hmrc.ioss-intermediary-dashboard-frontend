@@ -164,7 +164,7 @@ trait ModelGenerators extends EitherValues {
         SavedPendingRegistration(
           journeyId = userAnswers.journeyId,
           uniqueUrlCode = uniqueUrlCode,
-          userAnswers = userAnswers,
+          userAnswersData = userAnswers.data,
           lastUpdated = userAnswers.lastUpdated,
           uniqueActivationCode = uniqueActivationCode,
           intermediaryDetails = IntermediaryDetails("IM123456789", "IntermediaryName"))

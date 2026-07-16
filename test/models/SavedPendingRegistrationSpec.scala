@@ -29,11 +29,22 @@ class SavedPendingRegistrationSpec extends SpecBase {
     SavedPendingRegistration(
       journeyId = userAnswers.journeyId,
       uniqueUrlCode = UUID.randomUUID().toString,
+      userAnswersData = userAnswers.data,
+      lastUpdated = userAnswers.lastUpdated,
+      uniqueActivationCode = UUID.randomUUID().toString,
+      intermediaryDetails = IntermediaryDetails("intermediaryNumber", "intermediaryName")
+    )
+
+  private val savedPendingRegistrationWithUserAnswers: SavedPendingRegistrationWithUserAnswers =
+    SavedPendingRegistrationWithUserAnswers(
+      journeyId = userAnswers.journeyId,
+      uniqueUrlCode = UUID.randomUUID().toString,
       userAnswers = userAnswers,
       lastUpdated = userAnswers.lastUpdated,
       uniqueActivationCode = UUID.randomUUID().toString,
       intermediaryDetails = IntermediaryDetails("intermediaryNumber", "intermediaryName")
     )
+
 
   "SavedPendingRegistration" - {
 
@@ -42,7 +53,7 @@ class SavedPendingRegistrationSpec extends SpecBase {
       val json = Json.obj(
         "journeyId" -> savedPendingRegistration.journeyId,
         "uniqueUrlCode" -> savedPendingRegistration.uniqueUrlCode,
-        "userAnswers" -> savedPendingRegistration.userAnswers,
+        "userAnswersData" -> savedPendingRegistration.userAnswersData,
         "lastUpdated" -> savedPendingRegistration.lastUpdated,
         "uniqueActivationCode" -> savedPendingRegistration.uniqueActivationCode,
         "intermediaryDetails" -> savedPendingRegistration.intermediaryDetails
@@ -52,7 +63,7 @@ class SavedPendingRegistrationSpec extends SpecBase {
         SavedPendingRegistration(
           journeyId = savedPendingRegistration.journeyId,
           uniqueUrlCode = savedPendingRegistration.uniqueUrlCode,
-          userAnswers = savedPendingRegistration.userAnswers,
+          userAnswersData = savedPendingRegistration.userAnswersData,
           lastUpdated = savedPendingRegistration.lastUpdated,
           uniqueActivationCode = savedPendingRegistration.uniqueActivationCode,
           intermediaryDetails = IntermediaryDetails("intermediaryNumber", "intermediaryName")
@@ -74,11 +85,58 @@ class SavedPendingRegistrationSpec extends SpecBase {
       val json = Json.obj(
         "journeyId" -> savedPendingRegistration.journeyId,
         "uniqueCode" -> 12345,
-        "userAnswers" -> savedPendingRegistration.userAnswers,
+        "userAnswersData" -> savedPendingRegistration.userAnswersData,
         "lastUpdated" -> savedPendingRegistration.lastUpdated
       )
 
       json.validate[SavedPendingRegistration] mustBe a[JsError]
+    }
+  }
+
+  "SavedPendingRegistrationWithUserAnswers" - {
+
+    "must serialise/deserialise to and from a SavedPendingRegistrationWithUserAnswers object" in {
+
+      val json = Json.obj(
+        "journeyId" -> savedPendingRegistrationWithUserAnswers.journeyId,
+        "uniqueUrlCode" -> savedPendingRegistrationWithUserAnswers.uniqueUrlCode,
+        "userAnswers" -> savedPendingRegistrationWithUserAnswers.userAnswers,
+        "lastUpdated" -> savedPendingRegistrationWithUserAnswers.lastUpdated,
+        "uniqueActivationCode" -> savedPendingRegistrationWithUserAnswers.uniqueActivationCode,
+        "intermediaryDetails" -> savedPendingRegistrationWithUserAnswers.intermediaryDetails
+      )
+
+      val expectedResult: SavedPendingRegistrationWithUserAnswers =
+        SavedPendingRegistrationWithUserAnswers(
+          journeyId = savedPendingRegistrationWithUserAnswers.journeyId,
+          uniqueUrlCode = savedPendingRegistrationWithUserAnswers.uniqueUrlCode,
+          userAnswers = savedPendingRegistrationWithUserAnswers.userAnswers,
+          lastUpdated = savedPendingRegistrationWithUserAnswers.lastUpdated,
+          uniqueActivationCode = savedPendingRegistrationWithUserAnswers.uniqueActivationCode,
+          intermediaryDetails = IntermediaryDetails("intermediaryNumber", "intermediaryName")
+        )
+
+      json.validate[SavedPendingRegistrationWithUserAnswers] mustBe JsSuccess(expectedResult)
+      Json.toJson(expectedResult) mustBe json
+    }
+
+    "must handle missing fields during deserialization" in {
+
+      val json = Json.obj()
+
+      json.validate[SavedPendingRegistrationWithUserAnswers] mustBe a[JsError]
+    }
+
+    "must handle invalid data during deserialisation" in {
+
+      val json = Json.obj(
+        "journeyId" -> savedPendingRegistrationWithUserAnswers.journeyId,
+        "uniqueCode" -> 12345,
+        "userAnswers" -> savedPendingRegistrationWithUserAnswers.userAnswers,
+        "lastUpdated" -> savedPendingRegistrationWithUserAnswers.lastUpdated
+      )
+
+      json.validate[SavedPendingRegistrationWithUserAnswers] mustBe a[JsError]
     }
   }
 }

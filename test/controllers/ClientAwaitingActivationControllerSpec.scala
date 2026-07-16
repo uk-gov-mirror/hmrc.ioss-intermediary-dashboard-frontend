@@ -19,7 +19,7 @@ package controllers
 import base.SpecBase
 import connectors.RegistrationConnector
 import models.responses.InternalServerError
-import models.{IntermediaryDetails, SavedPendingRegistration, UserAnswers}
+import models.{IntermediaryDetails, SavedPendingRegistrationWithUserAnswers, UserAnswers}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{never, reset, times, verify, when}
 import org.scalatest.BeforeAndAfterEach
@@ -28,6 +28,7 @@ import pages.{EmptyWaypoints, Waypoints}
 import play.api.inject.bind
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
+import services.PendingRegistrationService
 import utils.FutureSyntax.FutureOps
 
 class ClientAwaitingActivationControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfterEach {
@@ -35,38 +36,45 @@ class ClientAwaitingActivationControllerSpec extends SpecBase with MockitoSugar 
   private val waypoints: Waypoints = EmptyWaypoints
 
   private val mockRegistrationConnector: RegistrationConnector = mock[RegistrationConnector]
+  private val mockPendingRegistrationService: PendingRegistrationService = mock[PendingRegistrationService]
 
   def generate6DigitCode(): String = {
     util.Random.alphanumeric.filter(_.isUpper).take(6).mkString
   }
 
-  private def savedPendingRegistration(userAnswers: UserAnswers): SavedPendingRegistration =
-    SavedPendingRegistration(
-      journeyId = emptyUserAnswers.journeyId,
+  private def savedPendingRegistrationWithUserAnswers(userAnswers: UserAnswers): SavedPendingRegistrationWithUserAnswers =
+    SavedPendingRegistrationWithUserAnswers(
+      journeyId = userAnswers.journeyId,
       uniqueUrlCode = generate6DigitCode(),
       userAnswers = userAnswers,
-      lastUpdated = emptyUserAnswers.lastUpdated,
+      lastUpdated = userAnswers.lastUpdated,
       uniqueActivationCode = generate6DigitCode(),
       intermediaryDetails = IntermediaryDetails(intermediaryNumber, intermediaryName)
     )
 
-  override def beforeEach(): Unit = reset(mockRegistrationConnector)
+  override def beforeEach(): Unit = reset(
+    mockRegistrationConnector,
+    mockPendingRegistrationService
+  )
 
   "ClientAwaitingActivation Controller" - {
 
     "must return OK and the correct view for a GET" in {
 
-      val testSavedPendingRegistrations = Seq(savedPendingRegistration(emptyUserAnswersWithVatInfo))
+      val testSavedPendingRegistrations = Seq(savedPendingRegistrationWithUserAnswers(emptyUserAnswersWithVatInfo))
       val numberOfPendingRegistrations = testSavedPendingRegistrations.size
 
       when(mockRegistrationConnector.getNumberOfPendingRegistrations(any())(any()))
         .thenReturn(numberOfPendingRegistrations.toLong.toFuture)
 
-      when(mockRegistrationConnector.getPendingRegistrations(any())(any()))
+      when(mockPendingRegistrationService.getPendingRegistration(any(), any())(any()))
         .thenReturn(Right(testSavedPendingRegistrations).toFuture)
 
       val application = applicationBuilder(userAnswers = None)
-        .overrides(bind[RegistrationConnector].toInstance(mockRegistrationConnector))
+        .overrides(
+          bind[RegistrationConnector].toInstance(mockRegistrationConnector),
+          bind[PendingRegistrationService].toInstance(mockPendingRegistrationService)
+        )
         .build()
 
       running(application) {
@@ -77,7 +85,7 @@ class ClientAwaitingActivationControllerSpec extends SpecBase with MockitoSugar 
         contentAsString(result) must include(testSavedPendingRegistrations.head.userAnswers.vatInfo.get.organisationName.value)
 
         verify(mockRegistrationConnector, times(1)).getNumberOfPendingRegistrations(any())(any())
-        verify(mockRegistrationConnector, times(1)).getPendingRegistrations(any())(any())
+        verify(mockPendingRegistrationService, times(1)).getPendingRegistration(any(), any())(any())
       }
     }
 
@@ -87,11 +95,14 @@ class ClientAwaitingActivationControllerSpec extends SpecBase with MockitoSugar 
       when(mockRegistrationConnector.getNumberOfPendingRegistrations(any())(any()))
         .thenReturn(numberOfPendingRegistration.toLong.toFuture)
 
-      when(mockRegistrationConnector.getPendingRegistrations(any())(any()))
-        .thenReturn(Right(Nil).toFuture)
+      when(mockPendingRegistrationService.getPendingRegistration(any(), any())(any()))
+        .thenReturn(Right(Seq.empty).toFuture)
 
       val application = applicationBuilder(userAnswers = None)
-        .overrides(bind[RegistrationConnector].toInstance(mockRegistrationConnector))
+        .overrides(
+          bind[RegistrationConnector].toInstance(mockRegistrationConnector),
+          bind[PendingRegistrationService].toInstance(mockPendingRegistrationService)
+        )
         .build()
 
       running(application) {
@@ -103,7 +114,7 @@ class ClientAwaitingActivationControllerSpec extends SpecBase with MockitoSugar 
         contentAsString(result) mustNot include("Company name")
 
         verify(mockRegistrationConnector, times(1)).getNumberOfPendingRegistrations(any())(any())
-        verify(mockRegistrationConnector, times(1)).getPendingRegistrations(any())(any())
+        verify(mockPendingRegistrationService, times(1)).getPendingRegistration(any(), any())(any())
       }
     }
 
@@ -113,7 +124,10 @@ class ClientAwaitingActivationControllerSpec extends SpecBase with MockitoSugar 
         .thenReturn(new RuntimeException("Failed to retrieve data.").toFuture)
 
       val application = applicationBuilder(userAnswers = None)
-        .overrides(bind[RegistrationConnector].toInstance(mockRegistrationConnector))
+        .overrides(
+          bind[RegistrationConnector].toInstance(mockRegistrationConnector),
+          bind[PendingRegistrationService].toInstance(mockPendingRegistrationService)
+        )
         .build()
 
       running(application) {
@@ -124,20 +138,23 @@ class ClientAwaitingActivationControllerSpec extends SpecBase with MockitoSugar 
         }
 
         verify(mockRegistrationConnector, times(1)).getNumberOfPendingRegistrations(any())(any())
-        verify(mockRegistrationConnector, never()).getPendingRegistrations(any())(any())
+        verify(mockPendingRegistrationService, never()).getPendingRegistration(any(), any())(any())
       }
     }
 
-    "must throw an exception and log the error when the connector fails to return pending registrations" in {
+    "must throw an exception and log the error when the service fails to return pending registrations" in {
 
       when(mockRegistrationConnector.getNumberOfPendingRegistrations(any())(any()))
         .thenReturn(0.toLong.toFuture)
 
-      when(mockRegistrationConnector.getPendingRegistrations(any())(any()))
+      when(mockPendingRegistrationService.getPendingRegistration(any(), any())(any()))
         .thenReturn(Left(InternalServerError).toFuture)
 
       val application = applicationBuilder(userAnswers = None)
-        .overrides(bind[RegistrationConnector].toInstance(mockRegistrationConnector))
+        .overrides(
+          bind[RegistrationConnector].toInstance(mockRegistrationConnector),
+          bind[PendingRegistrationService].toInstance(mockPendingRegistrationService)
+        )
         .build()
 
       running(application) {
@@ -148,7 +165,7 @@ class ClientAwaitingActivationControllerSpec extends SpecBase with MockitoSugar 
         }
 
         verify(mockRegistrationConnector, times(1)).getNumberOfPendingRegistrations(any())(any())
-        verify(mockRegistrationConnector, times(1)).getPendingRegistrations(any())(any())
+        verify(mockPendingRegistrationService, times(1)).getPendingRegistration(any(), any())(any())
       }
     }
   }

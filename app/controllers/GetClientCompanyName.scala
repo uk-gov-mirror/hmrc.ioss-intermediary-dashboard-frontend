@@ -16,11 +16,11 @@
 
 package controllers
 
-import models.SavedPendingRegistration
+import models.SavedPendingRegistrationWithUserAnswers
 
 trait GetClientCompanyName {
   
-  def getClientCompanyName(registration: SavedPendingRegistration): String = {
+  def getClientCompanyName(registration: SavedPendingRegistrationWithUserAnswers): String = {
     val userAnswers = registration.userAnswers
 
     userAnswers.vatInfo match

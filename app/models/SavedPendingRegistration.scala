@@ -25,7 +25,7 @@ import java.time.{Instant, LocalDateTime, ZoneId}
 case class SavedPendingRegistration(
                                      journeyId: String,
                                      uniqueUrlCode: String,
-                                     userAnswers: UserAnswers,
+                                     userAnswersData: JsObject,
                                      lastUpdated: Instant,
                                      uniqueActivationCode: String,
                                      intermediaryDetails: IntermediaryDetails
@@ -39,4 +39,25 @@ case class SavedPendingRegistration(
 
 object SavedPendingRegistration {
   implicit lazy val format: OFormat[SavedPendingRegistration] = Json.format[SavedPendingRegistration]
+}
+
+
+case class SavedPendingRegistrationWithUserAnswers(
+                                                    journeyId: String,
+                                                    uniqueUrlCode: String,
+                                                    userAnswers: UserAnswers,
+                                                    lastUpdated: Instant,
+                                                    uniqueActivationCode: String,
+                                                    intermediaryDetails: IntermediaryDetails
+                                                  ) {
+
+  def activationExpiryDate: String = LocalDateTime
+    .ofInstant(lastUpdated, ZoneId.systemDefault())
+    .plusDays(pendingRegistrationTTL).format(dateFormatter)
+
+}
+
+object SavedPendingRegistrationWithUserAnswers {
+  implicit lazy val format: OFormat[SavedPendingRegistrationWithUserAnswers] = Json.format[SavedPendingRegistrationWithUserAnswers]
+
 }
